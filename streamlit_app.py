@@ -7,8 +7,6 @@ from datetime import datetime
 import concurrent.futures
 
 # --- 1. DATA STRUCTURE ---
-# NOTE 1: Replaced SUBS_MAP and CORE_TICKERS with the new coverage list from the image.
-# Reference names with semicolons (like Dream Office and BSR) are split into multiple search terms.
 COVERAGE = {
     "Allied Properties": {"ticker": "AP.UN", "full_name": "Allied Properties Real Estate Investment Trust", "ref_names": ["Allied Properties"]},
     "Automotive Properties": {"ticker": "APR.UN", "full_name": "Automotive Properties Real Estate Investment Trust", "ref_names": ["Automotive Properties Re"]},
@@ -31,33 +29,7 @@ COVERAGE = {
     "Granite REIT": {"ticker": "GRT.UN", "full_name": "Granite Real Estate Investment Trust", "ref_names": ["Granite Real Estate Investment Trust", "Granite REIT"]}
 }
 
-# --- 2. SOURCE CLASSIFICATION ---
-# NOTE 2: Removed non-credible logic. We will strictly enforce that articles come from this list or the company itself.
-CREDIBLE_KEYWORDS = [
-    "Bloomberg", "Reuters", "Globe and Mail", "Financial Post", "CNBC", 
-    "The Star", "BNN", "Wall Street Journal", "WSJ", "Barron's", "Financial Times", 
-    "Associated Press", "AP", "Canadian Press", "GlobeNewswire", "Globe Newswire", 
-    "CNW Group", "PR Newswire", "Business Wire", "BusinessWire", "Accesswire", 
-    "Newsfile", "Marketwired", "Morningstar", "Barchart", "Seeking Alpha", 
-    "MarketWatch", "Newswire", "TMX", "Press Release", "Government of Canada", "RENX", "The National Post", 
-]
-
-def is_credible_source(source_name, company_name=""):
-    """Returns True only if the source is credible or directly from the company."""
-    if not source_name: return False
-    source_lower = str(source_name).lower()
-    
-    # Check if the source is the company itself
-    if company_name and company_name.lower() in source_lower:
-        return True
-    
-    # Check official credible keywords
-    if any(k.lower() in source_lower for k in CREDIBLE_KEYWORDS):
-        return True
-        
-    return False
-
-# --- 3. THE SCANNER ---
+# --- 2. THE SCANNER ---
 def get_google_news(search_term, display_name, validation_list):
     query = quote(f'{search_term} when:100d')
     url = f"https://news.google.com/rss/search?q={query}&hl=en-CA&gl=CA&ceid=CA:en"
@@ -72,7 +44,7 @@ def get_google_news(search_term, display_name, validation_list):
         headline = entry.title
         headline_lower = headline.lower()
         
-        # HEADLINE VALIDATION: Precise name-in-title check
+        # HEADLINE VALIDATION: Still checking if the company is actually mentioned in the title
         if not any(val.lower() in headline_lower for val in validation_list):
             continue
 
@@ -85,9 +57,8 @@ def get_google_news(search_term, display_name, validation_list):
         elif " - " in headline:
             source = headline.split(" - ")[-1]
         
-        # NOTE 3: Enforcing credibility right at the search level. If not credible, we skip it.
-        if not is_credible_source(source, display_name):
-            continue
+        # --- CREDIBILITY CHECK REMOVED ---
+        # All sources found in the RSS feed are now appended.
             
         results.append({
             "sort_key": sort_date,
@@ -99,7 +70,7 @@ def get_google_news(search_term, display_name, validation_list):
         })
     return results
 
-# --- 4. UI ---
+# --- 3. UI ---
 st.set_page_config(page_title="REITs News Screener", page_icon="📈", layout="wide")
 
 if 'news_data' not in st.session_state:
@@ -110,7 +81,6 @@ with st.sidebar:
     st.image(LOGO_URL)
     st.title("Screener Settings")
     
-    # NOTE 4: Removed tier checkboxes (rumors/social/other). Simplified dropdown per instructions.
     dropdown_options = ["--- MASTER VIEWS ---", "Entire Coverage"]
     dropdown_options += ["--- INDIVIDUAL NAMES ---"] + sorted(list(COVERAGE.keys()))
     
@@ -122,7 +92,6 @@ with st.sidebar:
 st.title("Real Estate Coverage News Screener")
 
 # --- BUILD SEARCH TASKS ---
-# NOTE 5: Tasks are built using Reference Name, Full Name, AND the Ticker.
 search_tasks = []
 
 def build_tasks_for_company(company_key):
@@ -131,17 +100,11 @@ def build_tasks_for_company(company_key):
     full_name = company_data["full_name"]
     ref_names = company_data["ref_names"]
     
-    # The validation list ensures the headline actually mentions one of the relevant terms
     validation_list = [ticker, full_name] + ref_names
     
-    # 1. Search by full name
     search_tasks.append((full_name, company_key, validation_list))
-    
-    # 2. Search by reference name(s)
     for ref in ref_names:
         search_tasks.append((ref, company_key, validation_list))
-        
-    # 3. Second round of search using the Ticker to ensure correct pulls
     search_tasks.append((ticker, company_key, validation_list))
 
 if selected_view == "Entire Coverage":
@@ -158,7 +121,6 @@ if not selected_view.startswith("---"):
             with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
                 future_to_company = {executor.submit(get_google_news, task[0], task[1], task[2]): task[0] for task in search_tasks}
                 for future in concurrent.futures.as_completed(future_to_company):
-                    # NOTE 6: Extending list keeps all duplicates per instruction. No set() conversion happens here.
                     all_hits.extend(future.result())
         st.session_state.news_data = all_hits
 
@@ -172,7 +134,6 @@ if st.session_state.news_data:
 
     st.success(f"Found {len(df)} headlines.")
     
-    # NOTE 7: Dropped 'Category' column since everything remaining is implicitly credible. Maintained Source and Link.
     st.dataframe(
         df[["Date", "Company", "Source", "Headline", "Link"]], 
         column_config={"Link": st.column_config.LinkColumn("View", display_text="Open")},
