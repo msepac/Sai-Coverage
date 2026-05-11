@@ -39,7 +39,7 @@ CREDIBLE_KEYWORDS = [
     "Associated Press", "AP", "Canadian Press", "GlobeNewswire", "Globe Newswire", 
     "CNW Group", "PR Newswire", "Business Wire", "BusinessWire", "Accesswire", 
     "Newsfile", "Marketwired", "Morningstar", "Barchart", "Seeking Alpha", 
-    "MarketWatch", "Newswire", "TMX", "Press Release", "Government of Canada", 
+    "MarketWatch", "Newswire", "TMX", "Press Release", "Government of Canada", "RENX", "The National Post", 
 ]
 
 def is_credible_source(source_name, company_name=""):
