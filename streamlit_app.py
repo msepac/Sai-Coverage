@@ -59,7 +59,7 @@ def is_credible_source(source_name, company_name=""):
 
 # --- 3. THE SCANNER ---
 def get_google_news(search_term, display_name, validation_list):
-    query = quote(f'{search_term} when:14d')
+    query = quote(f'{search_term} when:100d')
     url = f"https://news.google.com/rss/search?q={query}&hl=en-CA&gl=CA&ceid=CA:en"
     
     if hasattr(ssl, '_create_unverified_context'):
