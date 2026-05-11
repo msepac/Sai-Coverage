@@ -7,39 +7,32 @@ from datetime import datetime
 import concurrent.futures
 
 # --- 1. DATA STRUCTURE ---
-SUBS_MAP = {
-    "Alaris": ["3E, LLC", "Accscient, LLC", "Amur Financial Group", "SonoBello", "Cresa, LLC", "DNT Construction", "Edgewater Technical Associates", "Fleet Advantage", "Federal Management Partners", "GlobalWide Media", "Heritage Restoration", "Kubik, LP", "LMS Reinforcing Steel", "McCoy Roofing", "Ohana Growth Partners", "Optimus SBR", "Professional Electric Contractors", "Sagamore Plumbing", "SCR Mining & Tunnelling", "The Shipyard, LLC", "Unify Consulting", "D&M Leasing"],
-    "Exchange Income": ["Canadian North", "PAL Aerospace", "PAL Airlines", "Perimeter Aviation", "Calm Air", "Bearskin Airlines", "Keewatin Air", "Regional One", "Custom Helicopters", "Moncton Flight College", "Newfoundland Helicopters", "Air Borealis", "Mach2", "BC Medevac", "Northern Mat and Bridge", "Spartan Mat", "WesTower Communications", "Quest Window Systems", "BVGlazing Systems", "Ben Machine Products", "Stainless Fabrication", "DryAir Manufacturing", "Hansen Industries", "Overlanders Manufacturing", "LV Control Mfg", "Water Blast Manufacturing", "Duhamel Sawmill"],
-    "Bridgemarq": ["Royal LePage", "Proprio Direct", "Via Capitale"],
-    "Diversified Royalty": ["Mr. Lube", "Air Miles", "Sutton Group", "Nurse Next Door", "Oxford Learning", "BarBurrito", "Cheba Hut", "Mr. Mikes"],
-    "Dominion Lending": ["Mortgage Architects", "MCC Mortgage Centre", "Newton Connectivity", "DLC Group"],
-    "Fairfax": ["Odyssey Group", "Allied World", "Northbridge Financial", "Crum & Forster", "Brit Insurance"],
-    "goeasy": ["easyfinancial", "easyhome", "LendCare"],
-    "Propel": ["CreditFresh", "MoneyKey", "Fora Credit", "QuidMarket", "FreshLine"],
-    "Trisura": ["Trisura Guarantee Insurance", "Trisura Specialty"],
-    "Versabank": ["DRT Cyber", "Structured Receivable"],
-    "Westaim": ["Skyward Specialty", "Arena Investors", "Arena Wealth Management"]
-}
-
-CORE_TICKERS = {
-    # Expanded Alaris keywords to ensure press releases aren't filtered
-    "Alaris": ["Alaris Equity Partners", "Alaris", "TSX:AD", "AD.UN", "AD.TO"],
-    "Bridgemarq": ["Bridgemarq", "BRE.TO"],
-    "Canaccord": ["Canaccord", "CF.TO"],
-    "Diversified Royalty": ["Diversified Royalty", "DIV.TO", "DIV"],
-    "Dominion Lending": ["Dominion Lending Centres", "DLCG.TO", "DLC Group", "DLCG"],
-    "Exchange Income": ["Exchange Income", "EIF.TO", "EIF"],
-    "Fairfax": ["Fairfax Financial", "FFH.TO"],
-    "goeasy": ["goeasy", "GSY.TO"],
-    "Propel": ["Propel Holdings", "PRL.TO"],
-    "RFA Financial": ["RFA Financial", "RFA.TO"],
-    "Trisura": ["Trisura", "TSU.TO"],
-    "Versabank": ["VersaBank", "VSB.TO"],
-    "Westaim": ["Westaim", "WED.TO"]
+# NOTE 1: Replaced SUBS_MAP and CORE_TICKERS with the new coverage list from the image.
+# Reference names with semicolons (like Dream Office and BSR) are split into multiple search terms.
+COVERAGE = {
+    "Allied Properties": {"ticker": "AP.UN", "full_name": "Allied Properties Real Estate Investment Trust", "ref_names": ["Allied Properties"]},
+    "Automotive Properties": {"ticker": "APR.UN", "full_name": "Automotive Properties Real Estate Investment Trust", "ref_names": ["Automotive Properties Re"]},
+    "Boardwalk": {"ticker": "BEI.UN", "full_name": "Boardwalk Real Estate Investment Trust", "ref_names": ["Boardwalk Re"]},
+    "Canadian Apartment Properties": {"ticker": "CAR.UN", "full_name": "Canadian Apartment Properties Real Estate Investment Trust", "ref_names": ["Canadian Apartment Properties Re"]},
+    "Chartwell": {"ticker": "CSH.UN", "full_name": "Chartwell Retirement Residences", "ref_names": ["Chartwell"]},
+    "Dream Office": {"ticker": "D.UN", "full_name": "Dream Office Real Estate Investment Trust", "ref_names": ["Dream Office Real Estate Investment Trust", "Dream Office REIT"]},
+    "BSR": {"ticker": "HOM-U", "full_name": "BSR Real Estate Investment Trust", "ref_names": ["BSR Real Estate Investment Trust", "BSR REIT"]},
+    "Killam Apartment": {"ticker": "KMP.UN", "full_name": "Killam Apartment REIT", "ref_names": ["Killam Apartment Re"]},
+    "Dream Impact": {"ticker": "MPCT.UN", "full_name": "Dream Impact Trust", "ref_names": ["Dream Impact Trust"]},
+    "NexLiving": {"ticker": "NXLV", "full_name": "NexLiving Communities Inc.", "ref_names": ["NexLiving"]},
+    "Parkit": {"ticker": "PKT", "full_name": "Parkit Enterprise Inc.", "ref_names": ["Parkit"]},
+    "Pro REIT": {"ticker": "PRV.UN", "full_name": "Pro Real Estate Investment Trust", "ref_names": ["Pro Real Estate Investment Trust", "Pro REIT"]},
+    "Slate Grocery": {"ticker": "SGR-U", "full_name": "Slate Grocery REIT", "ref_names": ["Slate Grocery"]},
+    "Sienna Senior Living": {"ticker": "SIA", "full_name": "Sienna Senior Living Inc.", "ref_names": ["Sienna Senior Living"]},
+    "StorageVault": {"ticker": "SVI", "full_name": "StorageVault Canada Inc.", "ref_names": ["StorageVault"]},
+    "Vital Infrastructure": {"ticker": "VITL.UN", "full_name": "Vital Infrastructure Property Trust", "ref_names": ["Vital Infrastructure Property Trust"]},
+    "Nexus Industrial": {"ticker": "NXR.UN", "full_name": "Nexus Industrial REIT", "ref_names": ["Nexus Industrial"]},
+    "Dream Industrial": {"ticker": "DIR.UN", "full_name": "Dream Industrial Real Estate Investment Trust", "ref_names": ["Dream Industrial Re"]},
+    "Granite REIT": {"ticker": "GRT.UN", "full_name": "Granite Real Estate Investment Trust", "ref_names": ["Granite Real Estate Investment Trust", "Granite REIT"]}
 }
 
 # --- 2. SOURCE CLASSIFICATION ---
-# Added broader newswire and press release terms
+# NOTE 2: Removed non-credible logic. We will strictly enforce that articles come from this list or the company itself.
 CREDIBLE_KEYWORDS = [
     "Bloomberg", "Reuters", "Globe and Mail", "Financial Post", "CNBC", "Yahoo Finance", 
     "The Star", "BNN", "Wall Street Journal", "WSJ", "Barron's", "Financial Times", 
@@ -49,29 +42,20 @@ CREDIBLE_KEYWORDS = [
     "MarketWatch", "Newswire", "TMX", "Press Release"
 ]
 
-NON_CREDIBLE_SOURCES = ["magaproject", "coinmarketcap", "iowa capital dispatch", "crypto", "bitcoin", "blockchain", "investing.com"]
-
-def classify_source(source_name, company_name=""):
-    if not source_name: return "Other"
+def is_credible_source(source_name, company_name=""):
+    """Returns True only if the source is credible or directly from the company."""
+    if not source_name: return False
     source_lower = str(source_name).lower()
     
-    # 1. Filter junk first
-    if any(junk in source_lower for junk in NON_CREDIBLE_SOURCES):
-        return "Other"
-    
-    # 2. Check if the source is the company itself (High Signal)
+    # Check if the source is the company itself
     if company_name and company_name.lower() in source_lower:
-        return "Credible"
+        return True
     
-    # 3. Check official credible keywords
+    # Check official credible keywords
     if any(k.lower() in source_lower for k in CREDIBLE_KEYWORDS):
-        return "Credible"
-    
-    # 4. Social Media
-    if any(social in source_lower for social in ["twitter", "x.com", "reddit", "stocktwits", "facebook"]):
-        return "Social Media"
-    
-    return "Other"
+        return True
+        
+    return False
 
 # --- 3. THE SCANNER ---
 def get_google_news(search_term, display_name, validation_list):
@@ -101,19 +85,22 @@ def get_google_news(search_term, display_name, validation_list):
         elif " - " in headline:
             source = headline.split(" - ")[-1]
         
+        # NOTE 3: Enforcing credibility right at the search level. If not credible, we skip it.
+        if not is_credible_source(source, display_name):
+            continue
+            
         results.append({
             "sort_key": sort_date,
             "Date": sort_date.strftime('%b %d, %Y'),
             "Company": display_name,
             "Source": source,
-            "Category": classify_source(source, display_name), # Pass company name to validation
             "Headline": headline, 
             "Link": entry.link
         })
     return results
 
 # --- 4. UI ---
-st.set_page_config(page_title="DivFin News Screener", page_icon="📈", layout="wide")
+st.set_page_config(page_title="REITs News Screener", page_icon="📈", layout="wide")
 
 if 'news_data' not in st.session_state:
     st.session_state.news_data = []
@@ -123,46 +110,45 @@ with st.sidebar:
     st.image(LOGO_URL)
     st.title("Screener Settings")
     
-    dropdown_options = ["--- MASTER VIEWS ---", "Core Coverage (All Parents)", "Full Universe (Everything)"]
-    dropdown_options += ["--- INDIVIDUAL PARENTS ---"] + sorted(list(CORE_TICKERS.keys()))
-    dropdown_options += ["--- SUBSIDIARY GROUPS ---"] + sorted([f"{k} Subs" for k in SUBS_MAP.keys()])
+    # NOTE 4: Removed tier checkboxes (rumors/social/other). Simplified dropdown per instructions.
+    dropdown_options = ["--- MASTER VIEWS ---", "Entire Coverage"]
+    dropdown_options += ["--- INDIVIDUAL NAMES ---"] + sorted(list(COVERAGE.keys()))
     
     selected_view = st.selectbox("Select Watchlist", options=dropdown_options)
-    
-    st.divider()
-    
-    is_subs_selected = selected_view.endswith(" Subs")
-    
-    st.subheader("Filter by Source Tier")
-    show_credible = st.checkbox("Credible / Newswires", value=True)
-    show_social = st.checkbox("Social Media", value=is_subs_selected)
-    show_other = st.checkbox("Other Sources", value=is_subs_selected)
     
     st.divider()
     keyword_filter = st.text_input("🔍 Search Headlines", "").strip().lower()
 
 st.title("DivFin News Screener")
 
+# --- BUILD SEARCH TASKS ---
+# NOTE 5: Tasks are built using Reference Name, Full Name, AND the Ticker.
 search_tasks = []
-if selected_view == "Core Coverage (All Parents)":
-    for parent, terms in CORE_TICKERS.items():
-        for t in terms: search_tasks.append((t, parent, CORE_TICKERS[parent]))
 
-elif selected_view == "Full Universe (Everything)":
-    for parent, terms in CORE_TICKERS.items():
-        for t in terms: search_tasks.append((t, parent, CORE_TICKERS[parent]))
-    for parent, subs in SUBS_MAP.items():
-        for s in subs: search_tasks.append((s, s, [s]))
+def build_tasks_for_company(company_key):
+    company_data = COVERAGE[company_key]
+    ticker = company_data["ticker"]
+    full_name = company_data["full_name"]
+    ref_names = company_data["ref_names"]
+    
+    # The validation list ensures the headline actually mentions one of the relevant terms
+    validation_list = [ticker, full_name] + ref_names
+    
+    # 1. Search by full name
+    search_tasks.append((full_name, company_key, validation_list))
+    
+    # 2. Search by reference name(s)
+    for ref in ref_names:
+        search_tasks.append((ref, company_key, validation_list))
+        
+    # 3. Second round of search using the Ticker to ensure correct pulls
+    search_tasks.append((ticker, company_key, validation_list))
 
-elif selected_view in CORE_TICKERS:
-    for t in CORE_TICKERS[selected_view]: 
-        search_tasks.append((t, selected_view, CORE_TICKERS[selected_view]))
-
-elif selected_view.endswith(" Subs"):
-    p_name = selected_view.replace(" Subs", "")
-    if p_name in SUBS_MAP:
-        for s in SUBS_MAP[p_name]: 
-            search_tasks.append((s, s, [s]))
+if selected_view == "Entire Coverage":
+    for company in COVERAGE:
+        build_tasks_for_company(company)
+elif selected_view in COVERAGE:
+    build_tasks_for_company(selected_view)
 
 # --- EXECUTION ---
 if not selected_view.startswith("---"):
@@ -172,6 +158,7 @@ if not selected_view.startswith("---"):
             with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
                 future_to_company = {executor.submit(get_google_news, task[0], task[1], task[2]): task[0] for task in search_tasks}
                 for future in concurrent.futures.as_completed(future_to_company):
+                    # NOTE 6: Extending list keeps all duplicates per instruction. No set() conversion happens here.
                     all_hits.extend(future.result())
         st.session_state.news_data = all_hits
 
@@ -180,19 +167,14 @@ if st.session_state.news_data:
     df = pd.DataFrame(st.session_state.news_data)
     df = df.sort_values(by="sort_key", ascending=False)
     
-    allowed_categories = []
-    if show_credible: allowed_categories.append("Credible")
-    if show_social: allowed_categories.append("Social Media")
-    if show_other: allowed_categories.append("Other")
-    
-    df = df[df['Category'].isin(allowed_categories)]
-    
     if keyword_filter:
         df = df[df['Headline'].str.lower().str.contains(keyword_filter)]
 
     st.success(f"Found {len(df)} headlines.")
+    
+    # NOTE 7: Dropped 'Category' column since everything remaining is implicitly credible. Maintained Source and Link.
     st.dataframe(
-        df[["Date", "Company", "Category", "Source", "Headline", "Link"]], 
+        df[["Date", "Company", "Source", "Headline", "Link"]], 
         column_config={"Link": st.column_config.LinkColumn("View", display_text="Open")},
         use_container_width=True, 
         hide_index=True
