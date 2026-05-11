@@ -34,7 +34,7 @@ COVERAGE = {
 # --- 2. SOURCE CLASSIFICATION ---
 # NOTE 2: Removed non-credible logic. We will strictly enforce that articles come from this list or the company itself.
 CREDIBLE_KEYWORDS = [
-    "Bloomberg", "Reuters", "Globe and Mail", "Financial Post", "CNBC", "Yahoo Finance", 
+    "Bloomberg", "Reuters", "Globe and Mail", "Financial Post", "CNBC", 
     "The Star", "BNN", "Wall Street Journal", "WSJ", "Barron's", "Financial Times", 
     "Associated Press", "AP", "Canadian Press", "GlobeNewswire", "Globe Newswire", 
     "CNW Group", "PR Newswire", "Business Wire", "BusinessWire", "Accesswire", 
