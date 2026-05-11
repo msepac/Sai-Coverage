@@ -119,7 +119,7 @@ with st.sidebar:
     st.divider()
     keyword_filter = st.text_input("🔍 Search Headlines", "").strip().lower()
 
-st.title("DivFin News Screener")
+st.title("Real Estate Coverage News Screener")
 
 # --- BUILD SEARCH TASKS ---
 # NOTE 5: Tasks are built using Reference Name, Full Name, AND the Ticker.
