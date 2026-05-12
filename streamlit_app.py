@@ -5,9 +5,9 @@ from urllib.parse import quote
 import ssl
 from datetime import datetime
 import concurrent.futures
-from duckduckgo_search import DDGS  # NEW: Import for standard web searching
 
 # --- 1. EXCLUSION LIST ---
+# Sourced from your provided image.
 EXCLUDED_SOURCES = [
     "simplywall.st", "Yahoo Finance", "reminetwork.com", "marketscreener.com",
     "The Motley Fool Canada", "mission.ca", "TradingView", "TBNewsWatch.com",
@@ -44,10 +44,8 @@ COVERAGE = {
     "Granite REIT": {"ticker": "GRT.UN", "full_name": "Granite Real Estate Investment Trust", "ref_names": ["Granite Real Estate Investment Trust", "Granite REIT"]}
 }
 
-# --- 3. THE SCANNERS ---
-
+# --- 3. THE SCANNER ---
 def get_google_news(search_term, display_name, validation_list):
-    """Scrapes Google News RSS for journalistic publications."""
     query = quote(f'{search_term} when:100d')
     url = f"https://news.google.com/rss/search?q={query}&hl=en-CA&gl=CA&ceid=CA:en"
     
@@ -61,7 +59,7 @@ def get_google_news(search_term, display_name, validation_list):
         headline = entry.title
         headline_lower = headline.lower()
         
-        # HEADLINE VALIDATION
+        # HEADLINE VALIDATION: Checking if the company is actually mentioned in the title
         if not any(val.lower() in headline_lower for val in validation_list):
             continue
 
@@ -74,7 +72,7 @@ def get_google_news(search_term, display_name, validation_list):
         elif " - " in headline:
             source = headline.split(" - ")[-1]
         
-        # SOURCE EXCLUSION CHECK
+        # --- SOURCE EXCLUSION CHECK ---
         if any(excluded.lower() in source.lower() for excluded in EXCLUDED_SOURCES):
             continue
             
@@ -87,40 +85,6 @@ def get_google_news(search_term, display_name, validation_list):
             "Link": entry.link
         })
     return results
-
-def get_gov_updates(search_term, display_name, validation_list):
-    """Scrapes standard web search targeted only at Canadian Government domains."""
-    # Searching specifically within canada.ca and gc.ca domains
-    query = f'"{search_term}" (site:canada.ca OR site:gc.ca)'
-    results = []
-    
-    try:
-        with DDGS() as ddgs:
-            # timelimit='y' searches roughly the past year (DDG doesn't support '100d' strictly)
-            search_results = ddgs.text(query, max_results=5, timelimit='y')
-            
-            for r in search_results:
-                headline = r.get('title', '')
-                headline_lower = headline.lower()
-                
-                # HEADLINE VALIDATION
-                if not any(val.lower() in headline_lower for val in validation_list):
-                    continue
-                    
-                results.append({
-                    "sort_key": datetime.now(),  # Default to top since strict dates aren't provided via this API
-                    "Date": "Recent (Gov)",
-                    "Company": display_name,
-                    "Source": "Government of Canada",
-                    "Headline": headline, 
-                    "Link": r.get('href', '')
-                })
-    except Exception as e:
-        # Fails silently if DuckDuckGo heavily rate-limits the concurrent requests
-        pass
-        
-    return results
-
 
 # --- 4. UI ---
 st.set_page_config(page_title="REITs News Screener", page_icon="📈", layout="wide")
@@ -169,19 +133,11 @@ elif selected_view in COVERAGE:
 if not selected_view.startswith("---"):
     if st.button(f"Search {selected_view}", use_container_width=True):
         all_hits = []
-        with st.spinner(f'Searching {selected_view} across News and Government sites...'):
-            # Lowered max_workers slightly to prevent DDG rate-limiting
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                # Map both standard news tasks and government search tasks
-                future_news = {executor.submit(get_google_news, task[0], task[1], task[2]): task for task in search_tasks}
-                future_gov = {executor.submit(get_gov_updates, task[0], task[1], task[2]): task for task in search_tasks}
-                
-                # Combine futures
-                all_futures = {**future_news, **future_gov}
-                
-                for future in concurrent.futures.as_completed(all_futures):
+        with st.spinner(f'Searching {selected_view}...'):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+                future_to_company = {executor.submit(get_google_news, task[0], task[1], task[2]): task[0] for task in search_tasks}
+                for future in concurrent.futures.as_completed(future_to_company):
                     all_hits.extend(future.result())
-                    
         st.session_state.news_data = all_hits
 
 # --- 7. DISPLAY & DUPLICATE FILTERING ---
@@ -190,8 +146,11 @@ if st.session_state.news_data:
     df = df.sort_values(by="sort_key", ascending=False)
     
     # --- ROBUST DUPLICATE FILTER ---
+    # Create a normalized headline column to catch duplicates with slight case/spacing variations
     df['normalized_headline'] = df['Headline'].str.lower().str.strip()
+    # Drop duplicates globally based on the normalized headline
     df = df.drop_duplicates(subset=['normalized_headline'], keep='first')
+    # Remove the temporary column
     df = df.drop(columns=['normalized_headline'])
     
     if keyword_filter:
