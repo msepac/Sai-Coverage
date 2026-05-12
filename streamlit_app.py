@@ -6,19 +6,20 @@ import ssl
 from datetime import datetime
 import concurrent.futures
 
-# --- EXCLUSION LIST ---
-# Sourced from your provided image. Partial matches will work 
-# (e.g., "Yahoo Fina" will exclude "Yahoo Finance").
+# --- 1. EXCLUSION LIST ---
+# Sourced from your provided image. Partial matches will work.
 EXCLUDED_SOURCES = [
-    "simplywall", "Yahoo Fina", "INsauga", "reminetw", "marketscr", 
-    "The Motle", "mission.ca", "TradingVie", "TBNewsW", "Thunder B", 
-    "Finimize", "Weekly Vo", "Stock Trad", "AD HOC N", "Moomoo",
-    "eKathime", "Binance", "MarketBea", "Seeking A", "GuruFocus",
-    "Investing.", "kare11.com", "WKYC", "Sahm", "Morningst",
-    "NBA", "Semicond", "Dailyhunt"
+    "simplywall", "Yahoo Fina", "reminetw", "marketscr", 
+    "The Motle", "mission.ca", "TradingVie", "TBNewsW", 
+    "Finimize", "Weekly Vo", "Stock Trad", "AD HOC N", 
+    "Moomoo", "eKathime", "Binance", "MarketBea", 
+    "Seeking A", "GuruFocus", "Investing.", "kare11.com", 
+    "WKYC", "Sahm", "Morningst", "NBA", "Semicond", 
+    "Dailyhunt", "MarketWa", "Yahoo! Fin", "Music Talk", 
+    "People.co", "Yahoo New"
 ]
 
-# --- 1. DATA STRUCTURE ---
+# --- 2. DATA STRUCTURE ---
 COVERAGE = {
     "Allied Properties": {"ticker": "AP.UN", "full_name": "Allied Properties Real Estate Investment Trust", "ref_names": ["Allied Properties"]},
     "Automotive Properties": {"ticker": "APR.UN", "full_name": "Automotive Properties Real Estate Investment Trust", "ref_names": ["Automotive Properties Re"]},
@@ -41,7 +42,7 @@ COVERAGE = {
     "Granite REIT": {"ticker": "GRT.UN", "full_name": "Granite Real Estate Investment Trust", "ref_names": ["Granite Real Estate Investment Trust", "Granite REIT"]}
 }
 
-# --- 2. THE SCANNER ---
+# --- 3. THE SCANNER ---
 def get_google_news(search_term, display_name, validation_list):
     query = quote(f'{search_term} when:100d')
     url = f"https://news.google.com/rss/search?q={query}&hl=en-CA&gl=CA&ceid=CA:en"
@@ -70,7 +71,6 @@ def get_google_news(search_term, display_name, validation_list):
             source = headline.split(" - ")[-1]
         
         # --- SOURCE EXCLUSION CHECK ---
-        # If the source contains any of the strings in our EXCLUDED_SOURCES list, skip it.
         if any(excluded.lower() in source.lower() for excluded in EXCLUDED_SOURCES):
             continue
             
@@ -84,7 +84,7 @@ def get_google_news(search_term, display_name, validation_list):
         })
     return results
 
-# --- 3. UI ---
+# --- 4. UI ---
 st.set_page_config(page_title="REITs News Screener", page_icon="📈", layout="wide")
 
 if 'news_data' not in st.session_state:
@@ -105,7 +105,7 @@ with st.sidebar:
 
 st.title("Real Estate Coverage News Screener")
 
-# --- BUILD SEARCH TASKS ---
+# --- 5. BUILD SEARCH TASKS ---
 search_tasks = []
 
 def build_tasks_for_company(company_key):
@@ -127,7 +127,7 @@ if selected_view == "Entire Coverage":
 elif selected_view in COVERAGE:
     build_tasks_for_company(selected_view)
 
-# --- EXECUTION ---
+# --- 6. EXECUTION ---
 if not selected_view.startswith("---"):
     if st.button(f"Search {selected_view}", use_container_width=True):
         all_hits = []
@@ -138,14 +138,18 @@ if not selected_view.startswith("---"):
                     all_hits.extend(future.result())
         st.session_state.news_data = all_hits
 
-# --- DISPLAY ---
+# --- 7. DISPLAY & DUPLICATE FILTERING ---
 if st.session_state.news_data:
     df = pd.DataFrame(st.session_state.news_data)
     df = df.sort_values(by="sort_key", ascending=False)
     
-    # --- NEW: DUPLICATE FILTER ---
-    # Drops rows that have the exact same headline for the exact same company.
-    df = df.drop_duplicates(subset=['Headline', 'Company'], keep='first')
+    # --- ROBUST DUPLICATE FILTER ---
+    # Create a normalized headline column to catch duplicates with slight case/spacing variations
+    df['normalized_headline'] = df['Headline'].str.lower().str.strip()
+    # Drop duplicates globally based on the normalized headline
+    df = df.drop_duplicates(subset=['normalized_headline'], keep='first')
+    # Remove the temporary column
+    df = df.drop(columns=['normalized_headline'])
     
     if keyword_filter:
         df = df[df['Headline'].str.lower().str.contains(keyword_filter)]
