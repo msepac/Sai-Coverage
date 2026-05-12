@@ -6,6 +6,15 @@ import ssl
 from datetime import datetime
 import concurrent.futures
 
+# --- EXCLUSION LIST ---
+# Sourced from your provided image. Partial matches will work 
+# (e.g., "Yahoo Fina" will exclude "Yahoo Finance").
+EXCLUDED_SOURCES = [
+    "simplywall", "Yahoo Fina", "INsauga", "reminetw", "marketscr", 
+    "The Motle", "mission.ca", "TradingVie", "TBNewsW", "Thunder B", 
+    "Finimize", "Weekly Vo", "Stock Trad", "AD HOC N", "Moomoo"
+]
+
 # --- 1. DATA STRUCTURE ---
 COVERAGE = {
     "Allied Properties": {"ticker": "AP.UN", "full_name": "Allied Properties Real Estate Investment Trust", "ref_names": ["Allied Properties"]},
@@ -44,7 +53,7 @@ def get_google_news(search_term, display_name, validation_list):
         headline = entry.title
         headline_lower = headline.lower()
         
-        # HEADLINE VALIDATION: Still checking if the company is actually mentioned in the title
+        # HEADLINE VALIDATION: Checking if the company is actually mentioned in the title
         if not any(val.lower() in headline_lower for val in validation_list):
             continue
 
@@ -57,8 +66,10 @@ def get_google_news(search_term, display_name, validation_list):
         elif " - " in headline:
             source = headline.split(" - ")[-1]
         
-        # --- CREDIBILITY CHECK REMOVED ---
-        # All sources found in the RSS feed are now appended.
+        # --- NEW: SOURCE EXCLUSION CHECK ---
+        # If the source contains any of the strings in our EXCLUDED_SOURCES list, skip it.
+        if any(excluded.lower() in source.lower() for excluded in EXCLUDED_SOURCES):
+            continue
             
         results.append({
             "sort_key": sort_date,
