@@ -7,16 +7,18 @@ from datetime import datetime
 import concurrent.futures
 
 # --- 1. EXCLUSION LIST ---
-# Sourced from your provided image. Partial matches will work.
+# Sourced from your provided image.
 EXCLUDED_SOURCES = [
-    "simplywall", "Yahoo Fina", "reminetw", "marketscr", 
-    "The Motle", "mission.ca", "TradingVie", "TBNewsW", 
-    "Finimize", "Weekly Vo", "Stock Trad", "AD HOC N", 
-    "Moomoo", "eKathime", "Binance", "MarketBea", 
-    "Seeking A", "GuruFocus", "Investing.", "kare11.com", 
-    "WKYC", "Sahm", "Morningst", "NBA", "Semicond", 
-    "Dailyhunt", "MarketWa", "Yahoo! Fin", "Music Talk", 
-    "People.co", "Yahoo New"
+    "simplywall.st", "Yahoo Finance", "reminetwork.com", "marketscreener.com",
+    "The Motley Fool Canada", "mission.ca", "TradingView", "TBNewsWatch.com",
+    "Finimize", "Weekly Voice", "Stock Traders Daily", "AD HOC NEWS",
+    "Moomoo", "eKathimerini.com", "Binance", "MarketBeat",
+    "Seeking Alpha", "GuruFocus", "Investing.com Canada", "kare11.com",
+    "WKYC", "Sahm", "Morningstar", "NBA", "Semiconductor Industry Association | SIA",
+    "Dailyhunt", "MarketWatch", "Yahoo! Finance Canada", "Music Talkers",
+    "People.com", "Yahoo News Canada", "ChartMill", "Travel And Tour World",
+    "Croatia Week", "Shop Eat Surf Outdoor", "The J-Notes", "defenceWeb",
+    "Firefighter Nation", "Manila Bulletin", "Evertiq", "The Times of India"
 ]
 
 # --- 2. DATA STRUCTURE ---
