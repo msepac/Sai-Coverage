@@ -12,7 +12,10 @@ import concurrent.futures
 EXCLUDED_SOURCES = [
     "simplywall", "Yahoo Fina", "INsauga", "reminetw", "marketscr", 
     "The Motle", "mission.ca", "TradingVie", "TBNewsW", "Thunder B", 
-    "Finimize", "Weekly Vo", "Stock Trad", "AD HOC N", "Moomoo"
+    "Finimize", "Weekly Vo", "Stock Trad", "AD HOC N", "Moomoo",
+    "eKathime", "Binance", "MarketBea", "Seeking A", "GuruFocus",
+    "Investing.", "kare11.com", "WKYC", "Sahm", "Morningst",
+    "NBA", "Semicond", "Dailyhunt"
 ]
 
 # --- 1. DATA STRUCTURE ---
@@ -66,7 +69,7 @@ def get_google_news(search_term, display_name, validation_list):
         elif " - " in headline:
             source = headline.split(" - ")[-1]
         
-        # --- NEW: SOURCE EXCLUSION CHECK ---
+        # --- SOURCE EXCLUSION CHECK ---
         # If the source contains any of the strings in our EXCLUDED_SOURCES list, skip it.
         if any(excluded.lower() in source.lower() for excluded in EXCLUDED_SOURCES):
             continue
@@ -139,6 +142,10 @@ if not selected_view.startswith("---"):
 if st.session_state.news_data:
     df = pd.DataFrame(st.session_state.news_data)
     df = df.sort_values(by="sort_key", ascending=False)
+    
+    # --- NEW: DUPLICATE FILTER ---
+    # Drops rows that have the exact same headline for the exact same company.
+    df = df.drop_duplicates(subset=['Headline', 'Company'], keep='first')
     
     if keyword_filter:
         df = df[df['Headline'].str.lower().str.contains(keyword_filter)]
