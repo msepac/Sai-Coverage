@@ -33,7 +33,7 @@ COVERAGE = {
     "Parkit": {"ticker": "PKT", "full_name": "Parkit Enterprise Inc.", "ref_names": ["Parkit"]},
     "Pro REIT": {"ticker": "PRV.UN", "full_name": "Pro Real Estate Investment Trust", "ref_names": ["Pro Real Estate Investment Trust", "Pro REIT"]},
     "Slate Grocery": {"ticker": "SGR-U", "full_name": "Slate Grocery REIT", "ref_names": ["Slate Grocery"]},
-    "Sienna Senior Living": {"ticker": "SIA", "full_name": "Sienna Senior Living Inc.", "ref_names": ["Sienna Senior Living"]},
+    "Sienna Senior Living": {"ticker": "full_name": "Sienna Senior Living Inc.", "ref_names": ["Sienna Senior Living"]},
     "StorageVault": {"ticker": "SVI", "full_name": "StorageVault Canada Inc.", "ref_names": ["StorageVault"]},
     "Vital Infrastructure": {"ticker": "VITL.UN", "full_name": "Vital Infrastructure Property Trust", "ref_names": ["Vital Infrastructure Property Trust"]},
     "Nexus Industrial": {"ticker": "NXR.UN", "full_name": "Nexus Industrial REIT", "ref_names": ["Nexus Industrial"]},
